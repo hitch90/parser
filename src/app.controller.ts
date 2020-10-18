@@ -8,7 +8,9 @@ export class AppController {
   disallowProducts = ['chodzik', 'fotelik', 'wózek', 'adapter', 'adaptery', 'huśtawka',
     'kojec', 'łóżeczko', 'leżaczek', 'rajstopy', 'ubranko', 'waga', 'termoopakowanie', 'krzesełko',
     'uchwyt', 'napoje', 'torba', 'pojemnik', 'szelki', 'pisuar', 'nocnik', 'nakładka', 'wanienka',
-    'aspirator', 'inhalator', 'podgrzewacz', 'sterylizator', 'suszarka', 'sanki', 'spacerówka', 'moskitiera'
+    'aspirator', 'inhalator', 'podgrzewacz', 'sterylizator', 'suszarka', 'sanki', 'spacerówka', 'moskitiera',
+    'tipi', 'kosz', 'rowerek', 'materac', 'sofka', 'biegunach', 'pojazd', 'kuchnia', 'hulajnoga', 'jeździdło',
+    'baldachim', 'pojazdy'
   ];
   disallowCategory = ['ubranka', 'drewex', 'zetpol', 'promocje', 'womar', 'dr. brown\'s', 'dla mamy', 'wagi', 'elektronika', '59s'];
 
