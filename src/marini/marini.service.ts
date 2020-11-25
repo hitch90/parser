@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import * as convert from 'xml-js';
 import WooCommerceRestApi from '@woocommerce/woocommerce-rest-api';
-import PromiseQueue from 'easy-promise-queue';
 
 @Injectable()
 export class MariniService {
@@ -126,28 +125,35 @@ export class MariniService {
   }
 
   async updateStocks() {
-    let productsFromAPI = await this.getParsedProducts();
-    productsFromAPI = productsFromAPI.slice(0, 1000);
-    productsFromAPI.map(async p => await this.getProductInWc(p));
+    const productsFromAPI = await this.getParsedProducts();
+    const productsWithVariants = [];
+    for (let i = 2000; i < productsFromAPI.length; i++) {
+      const p = productsFromAPI[i];
+      const pData = await this.getProductInWc(p);
+      const productsFromApi = pData.data;
+      console.log(`zaczynam przetwarzanie elementu ${i}`);
+      if (productsFromApi.length) {
+        console.log(`przetwarzam ${productsFromAPI[0].id}`);
+        if (productsFromAPI[0].type === 'variable') {
+          productsWithVariants.push(productsFromAPI[0]);
+          console.log(`produkt z wariantami ${productsFromAPI[0].id}`);
+        } else if (productsFromAPI[0].type == 'simple' && productsFromAPI[0].stock_quantity != p.stock && productsFromAPI[0].regular_price != p.price) {
+            const updatedProduct = await this.updateProductInWc(productsFromApi[0], {
+              stock_quantity: p.stock,
+              regular_price: p.price
+            });
+            console.log(`Zaktualizowany ${i} z ${productsFromAPI.length}, `, updatedProduct.data.sku);
+          }
+        }
+      }
     return true;
   }
 
-  async getProductInWc(product) {
-    await this.WooCommerce.get('products', { sku: product.sku })
-      .then(res => {
-        const productsArr = res.data;
-        if (productsArr.length) {
-          productsArr.map(async item => {
-            await this.updateProductInWc(item, { stock: product.stock })
-              .then(c => console.log('updated', c.id))
-              .catch(er => console.log('update', product.sku, er.response))
-          });
-        }
-      })
-      .catch(err => console.log(product.sku, err.response.status));
+  getProductInWc(product) {
+    return this.WooCommerce.get('products', { sku: product.sku })
   }
 
-  async updateProductInWc(product, data) {
-    return await this.WooCommerce.put(`products/${product.id}`, data);
+  updateProductInWc(product, data) {
+    return this.WooCommerce.put(`products/${product.id}`, data);
   }
 }
