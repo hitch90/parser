@@ -60,9 +60,17 @@ export class MariniService {
       description: product.opis?._text,
       stock: this.setStock(product),
       category: this.setCategories(product),
-      images: product?.zdjecia?._text.split(' ').join(','),
+      images: this.setImages(product),
       taxClass: this.setVat(product),
     };
+  }
+
+  setImages({ zdjecia }) {
+    if (zdjecia?._text) {
+      const imgArr = [];
+      zdjecia._text.split(' ').map(img => imgArr.push({ src: img }));
+      return imgArr;
+    }
   }
 
   setSku({ kod, EAN }) {
@@ -118,32 +126,37 @@ export class MariniService {
   wcConnection() {
     this.WooCommerce = new WooCommerceRestApi({
       url: 'https://kidify.pl',
-      consumerKey: 'ck_621b6dd1d27b56134a048d28515307abf9e37f44',
-      consumerSecret: 'cs_0374c1d420cc8fcb271f5dfff349da6fb0a0b22a',
+      consumerKey: 'ck_5d7957b0d032201a10f84763f7578fd14c057a8d',
+      consumerSecret: 'cs_bf5729ca9177c4454183abb99df4bcb963a163f4',
       version: 'wc/v3',
     });
   }
 
   async updateStocks() {
-    const productsFromAPI = await this.getParsedProducts();
+    const productsFromMarini = await this.getParsedProducts();
     const productsWithVariants = [];
-    for (let i = 2000; i < productsFromAPI.length; i++) {
-      const p = productsFromAPI[i];
+    for (let i = 0; i < productsFromMarini.length; i++) {
+      const p = productsFromMarini[i];
       const pData = await this.getProductInWc(p);
-      const productsFromApi = pData.data;
+      const productsFromWC = pData.data;
       console.log(`zaczynam przetwarzanie elementu ${i}`);
-      if (productsFromApi.length) {
-        console.log(`przetwarzam ${productsFromAPI[0].id}`);
-        if (productsFromAPI[0].type === 'variable') {
-          productsWithVariants.push(productsFromAPI[0]);
-          console.log(`produkt z wariantami ${productsFromAPI[0].id}`);
-        } else if (productsFromAPI[0].type == 'simple' && productsFromAPI[0].stock_quantity != p.stock && productsFromAPI[0].regular_price != p.price) {
-            const updatedProduct = await this.updateProductInWc(productsFromApi[0], {
+      if (productsFromWC.length) {
+        console.log(`przetwarzam ${productsFromWC[0].id}`);
+        if (productsFromWC[0].type === 'variable') {
+          productsWithVariants.push(productsFromWC[0]);
+          console.log(`produkt z wariantami ${productsFromWC[0].id}`);
+        } else if (productsFromWC[0].type == 'simple' && productsFromWC[0].stock_quantity != p.stock && productsFromWC[0].regular_price != p.price) {
+            const updatedProduct = await this.updateProductInWc(productsFromWC[0], {
               stock_quantity: p.stock,
-              regular_price: p.price
+              regular_price: p.price.toString(),
+              manage_stock: true
             });
-            console.log(`Zaktualizowany ${i} z ${productsFromAPI.length}, `, updatedProduct.data.sku);
+            console.log(`Zaktualizowany ${i} z ${productsFromMarini.length}, `, updatedProduct.data.sku);
           }
+        } else {
+          console.log('tworze product');
+          const createdProduct = await this.createProductInWC(p);
+          console.log('Utworzony product', createdProduct.data.name);
         }
       }
     return true;
@@ -154,6 +167,22 @@ export class MariniService {
   }
 
   updateProductInWc(product, data) {
+    console.log(data);
     return this.WooCommerce.put(`products/${product.id}`, data);
+  }
+
+  createProductInWC(product) {
+    return this.WooCommerce.post(`products`, {
+      name: product.name,
+      type: "simple",
+      regular_price: product.price.toString(),
+      description: product.description,
+      "categories": [],
+      images: product.images,
+      sku: product.sku.toString(),
+      stock_quantity: product.stock,
+      manage_stock: true,
+      tax_class: product.taxClass
+    });
   }
 }
