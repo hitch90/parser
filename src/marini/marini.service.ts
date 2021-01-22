@@ -56,6 +56,7 @@ export class MariniService {
       sku: this.setSku(product),
       name: this.setName(name.replace(producer, '').trim()),
       price: this.setPrice(product),
+      promo_price: this.setPromoPrice(product),
       producer,
       description: product.opis?._text,
       stock: this.setStock(product),
@@ -90,7 +91,39 @@ export class MariniService {
   setPrice({ cena, VAT }) {
     const vat = parseInt(VAT._text);
     const price = parseInt(cena._text);
-    return Math.round((price + (price * vat) / 100) * 1.13) + 0.99;
+
+    if (price > 500) {
+      return Math.round((price + (price * vat) / 100) * 1.06) + 0.99;
+    } else if (price > 400) {
+      return Math.round((price + (price * vat) / 100) * 1.08) + 0.99;
+    } else if (price > 300) {
+      return Math.round((price + (price * vat) / 100) * 1.1) + 0.99;
+    } else if (price > 200) {
+      return Math.round((price + (price * vat) / 100) * 1.12) + 0.99;
+    } else if (price > 100) {
+      return Math.round((price + (price * vat) / 100) * 1.16) + 0.99;
+    }
+
+    return Math.round((price + (price * vat) / 100) * 1.2) + 0.99;
+  }
+
+  setPromoPrice({ cena, VAT }) {
+    const vat = parseInt(VAT._text);
+    const price = parseInt(cena._text);
+
+    if (price > 500) {
+      return Math.round((price + (price * vat) / 100) * 1.03) + 0.99;
+    } else if (price > 400) {
+      return Math.round((price + (price * vat) / 100) * 1.04) + 0.99;
+    } else if (price > 300) {
+      return Math.round((price + (price * vat) / 100) * 1.06) + 0.99;
+    } else if (price > 200) {
+      return Math.round((price + (price * vat) / 100) * 1.08) + 0.99;
+    } else if (price > 100) {
+      return Math.round((price + (price * vat) / 100) * 1.1) + 0.99;
+    }
+
+    return Math.round((price + (price * vat) / 100) * 1.10) + 0.99;
   }
 
   setVat({ VAT }) {
@@ -149,6 +182,7 @@ export class MariniService {
             const updatedProduct = await this.updateProductInWc(productsFromWC[0], {
               stock_quantity: p.stock,
               regular_price: p.price.toString(),
+              sale_price: p.promo_price.toString(),
               manage_stock: true
             });
             console.log(`Zaktualizowany ${i} z ${productsFromMarini.length}, `, updatedProduct.data.sku);
@@ -176,6 +210,7 @@ export class MariniService {
       name: product.name,
       type: "simple",
       regular_price: product.price.toString(),
+      sale_price: product.promo_price.toString(),
       description: product.description,
       "categories": [],
       images: product.images,
